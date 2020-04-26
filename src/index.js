@@ -5,12 +5,12 @@ const cors = require('cors');
 
 const app = express();
 
-mongoose.connect(process.env.MONGODB_CONNECTION,{
+/*mongoose.connect(process.env.MONGODB_CONNECTION,{
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useCreateIndex: true,
     ssl: false
-});
+});*/
 
 
 app.use(cors());
