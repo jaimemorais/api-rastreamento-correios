@@ -4,10 +4,10 @@ const RastreamentoController = require('./controllers/RastreamentoController')
 
 const routes = Router();
 
-routes.post('/rastreamento', RastreamentoController.salvarItemRastreamento);
+routes.post('/criarEncomenda', RastreamentoController.criarEncomenda);
 
 routes.get('/listagem', RastreamentoController.listagem);
 
-routes.get('/obterStatusAtualizado', RastreamentoController.obterStatusAtualizado);
+routes.get('/obterStatusAtualizados', RastreamentoController.obterStatusAtualizados);
 
 module.exports = routes

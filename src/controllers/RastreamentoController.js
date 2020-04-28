@@ -1,37 +1,51 @@
-const axios = require('axios');
-const EncomendaSchema = require('../models/EncomendaSchema');
-
 const { rastro } = require('rastrojs');
-
+const EncomendaSchema = require('../models/EncomendaSchema');
 
 
 module.exports = {
 
-    async salvarItemRastreamento(request, response) {
-    
-        const { codigoItemRastreado, nomeDestinatario, emailDestinatario, dataEnvio, emailRemetente } = request.body;    
-            
-        let encomenda = await EncomendaSchema.findOne({ codigoItemRastreado });
-        if (!encomenda) {
-        
-            const dadosRastreamento = await rastro.track(codigoItemRastreado);
+    async criarEncomenda(request, response) {
 
-            if (!dadosRastreamento) {
-                // TODO response 400 
-            }
-            else {
-                // TODO destructuring e salvar base
-                // const {  } = dadosRastreamento;                
-                                    
-                encomenda = await EncomendaSchema.create({
-                    codigoItemRastreado,
-                    nomeDestinatario,
-                    emailDestinatario,
-                    dataEnvio,
-                    emailRemetente
-                });
-            }
+        const { codigoEncomenda, nomeDestinatario, emailDestinatario, dataEnvio, emailRemetente } = request.body;    
+
+        let encomenda = await EncomendaSchema.findOne({ codigoEncomenda });
+        if (encomenda) {
+            response.status(400);
+            return response.send('Ja existe uma encomenda com o codigoEncomenda informado');
         }
+        
+        /*
+        try {
+            const jsonDadosCorreio = await rastro.track(codigoEncomenda);
+
+            const dadosCorreio = JSON.parse(jsonDadosCorreio);
+            const { code, isInvalid, error } = dadosCorreio;
+            console.log(dadosCorreio);
+    
+            if (!jsonDadosCorreio || isInvalid) {                
+                response.status(404);
+                return res.send('Nao encontrada encomenda nos correios com o codigo informado. Retorno erro correios : ' + error );
+            }
+
+        } catch (err) {
+            response.status(500);
+            return res.send('Erro geral : ' + err );
+        }
+
+          */  
+        // TODO destructuring nos dados do correio e setar os campos
+        // const { } = dadosCorreio;
+        
+        encomenda = await EncomendaSchema.create({
+            codigoEncomenda,
+            nomeDestinatario,
+            emailDestinatario,
+            dataEnvio,
+            emailRemetente
+        })
+        .catch(err => {
+            console.log(err);
+        });
     
         return response.json(encomenda);
     },
@@ -43,7 +57,7 @@ module.exports = {
         return response.json(listaRastreamento);
     },
 
-    async obterStatusAtualizado(request, response) {
+    async obterStatusAtualizados(request, response) {
         
         // TODO percorrer todos itens do usuario e atualizar os status
         // disparado por cron
