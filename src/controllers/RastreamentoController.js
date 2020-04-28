@@ -1,5 +1,5 @@
 const axios = require('axios');
-const Rastreamento = require('../models/ItemRastreamento');
+const EncomendaSchema = require('../models/EncomendaSchema');
 
 const { rastro } = require('rastrojs');
 
@@ -11,8 +11,8 @@ module.exports = {
     
         const { codigoItemRastreado, nomeDestinatario, emailDestinatario, dataEnvio, emailRemetente } = request.body;    
             
-        let itemRastreamento = await Rastreamento.findOne({ codigoItemRastreado });
-        if (!itemRastreamento) {
+        let encomenda = await EncomendaSchema.findOne({ codigoItemRastreado });
+        if (!encomenda) {
         
             const dadosRastreamento = await rastro.track(codigoItemRastreado);
 
@@ -23,7 +23,7 @@ module.exports = {
                 // TODO destructuring e salvar base
                 // const {  } = dadosRastreamento;                
                                     
-                itemRastreamento = await Rastreamento.create({
+                encomenda = await EncomendaSchema.create({
                     codigoItemRastreado,
                     nomeDestinatario,
                     emailDestinatario,
@@ -33,7 +33,7 @@ module.exports = {
             }
         }
     
-        return response.json(itemRastreamento);
+        return response.json(encomenda);
     },
 
     
@@ -47,8 +47,7 @@ module.exports = {
         
         // TODO percorrer todos itens do usuario e atualizar os status
         // disparado por cron
-
-        // http://localhost:3333/obterStatusAtualizado?codigoRastreamento=JT124720455BR
+        
         var codigo = request.query.codigoRastreamento;
         console.log(`chamando rastro para codigo ${codigo}...`);
         

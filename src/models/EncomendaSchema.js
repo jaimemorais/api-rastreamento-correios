@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const ItemRastremanentoSchema = new mongoose.Schema({
+const EncomendaSchema = new mongoose.Schema({
     codigoItemRastreado: String,
     nomeDestinatario: String,
     emailDestinatario: String,
@@ -8,4 +8,5 @@ const ItemRastremanentoSchema = new mongoose.Schema({
     emailRemetente: String
 })
 
-module.exports = mongoose.model('ItemRastreamento', ItemRastremanentoSchema)
+module.exports = mongoose.model('Encomenda', EncomendaSchema)
+ 
