@@ -5,49 +5,33 @@ const EncomendaSchema = require('../models/EncomendaSchema');
 module.exports = {
 
     async criarEncomenda(request, response) {
-
-        const { codigoEncomenda, nomeDestinatario, emailDestinatario, dataEnvio, emailRemetente } = request.body;    
-
-        let encomenda = await EncomendaSchema.findOne({ codigoEncomenda });
-        if (encomenda) {
-            response.status(400);
-            return response.send('Ja existe uma encomenda com o codigoEncomenda informado');
-        }
         
-        /*
         try {
-            const jsonDadosCorreio = await rastro.track(codigoEncomenda);
-
-            const dadosCorreio = JSON.parse(jsonDadosCorreio);
-            const { code, isInvalid, error } = dadosCorreio;
-            console.log(dadosCorreio);
-    
-            if (!jsonDadosCorreio || isInvalid) {                
-                response.status(404);
-                return res.send('Nao encontrada encomenda nos correios com o codigo informado. Retorno erro correios : ' + error );
+            const { codigoEncomenda, nomeDestinatario, emailDestinatario, dataEnvio, emailRemetente } = request.body;
+            let encomenda = await EncomendaSchema.findOne({ codigoEncomenda });
+            if (encomenda) {
+                response.status(400);
+                return response.send('Ja existe uma encomenda com o codigo informado');
             }
 
+            // Busca via rastrojs
+            const dadosCorreio = await rastro.track(codigoEncomenda);
+            const { code, isInvalid, error } = dadosCorreio[0];
+    
+            if (!dadosCorreio || isInvalid) {                
+                response.status(404);
+                return response.send(`Nao encontrada encomenda nos correios com o codigo ${code} informado. Retorno erro correios : ${error}`);
+            }
+
+            encomenda = await salvarEncomenda(codigoEncomenda, nomeDestinatario, emailDestinatario, dataEnvio, emailRemetente, dadosCorreio);
+        
+            return response.json(encomenda);
+            
         } catch (err) {
             response.status(500);
-            return res.send('Erro geral : ' + err );
+            return response.send('Erro geral : ' + err );
         }
-
-          */  
-        // TODO destructuring nos dados do correio e setar os campos
-        // const { } = dadosCorreio;
         
-        encomenda = await EncomendaSchema.create({
-            codigoEncomenda,
-            nomeDestinatario,
-            emailDestinatario,
-            dataEnvio,
-            emailRemetente
-        })
-        .catch(err => {
-            console.log(err);
-        });
-    
-        return response.json(encomenda);
     },
 
     
@@ -72,3 +56,26 @@ module.exports = {
     }
     
 };
+
+async function salvarEncomenda(codigoEncomenda, nomeDestinatario, emailDestinatario, dataEnvioJson, emailRemetente, dadosCorreio) {
+    var dateParts = dataEnvioJson.split("/");
+    let dataEnvio = new Date(+dateParts[2], dateParts[1] - 1, +dateParts[0]);
+    const tipoEncomenda = dadosCorreio[0].type;
+    let dataHoraUltimoStatus = dadosCorreio[0].updatedAt;
+    const local = dadosCorreio[0].tracks[dadosCorreio[0].tracks.length - 1].locale;
+    const observacao = dadosCorreio[0].tracks[dadosCorreio[0].tracks.length - 1].observation;
+    const ultimoStatus = dadosCorreio[0].tracks[dadosCorreio[0].tracks.length - 1].status;
+
+    return await EncomendaSchema.create({
+        codigoEncomenda,
+        nomeDestinatario,
+        emailDestinatario,
+        dataEnvio,
+        emailRemetente,
+        tipoEncomenda,
+        ultimoStatus,
+        dataHoraUltimoStatus,
+        local,
+        observacao
+    });
+}

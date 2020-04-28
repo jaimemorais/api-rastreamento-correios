@@ -5,13 +5,13 @@ const EncomendaSchema = new mongoose.Schema({
     codigoEncomenda : String,    
     nomeDestinatario: String,
     emailDestinatario: String,
-    dataEnvio: String,
+    dataEnvio: Date,
     emailRemetente: String,
     
     // dados correio
     tipoEncomenda: String,
     ultimoStatus: String,
-    dataHoraUltimoStatus: String,
+    dataHoraUltimoStatus: Date,
     local: String,
     observacao: String
 })
