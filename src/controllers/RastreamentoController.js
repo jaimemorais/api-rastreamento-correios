@@ -76,7 +76,7 @@ module.exports = {
         EncomendaModel.find().lean().exec(function (err, encomendas) {
             if (err) return res.send(500, {error: err});
             return res.send(JSON.stringify(encomendas));
-        });
+        }); 
     },
 
 
@@ -85,7 +85,7 @@ module.exports = {
         // TODO percorrer todos itens do usuario e atualizar os status
         // disparado por cron
         // send sms for the changed statuses
-        
+
         var codigo = req.query.codigoRastreamento;
         console.log(`chamando rastro para codigo ${codigo}...`);
         
