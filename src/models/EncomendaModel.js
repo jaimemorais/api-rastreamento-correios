@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const EncomendaSchema = new mongoose.Schema({
+const EncomendaModel = new mongoose.Schema({
     // dados usuario
     codigoEncomenda : String,    
     nomeDestinatario: String,
@@ -16,5 +16,5 @@ const EncomendaSchema = new mongoose.Schema({
     observacao: String
 })
 
-module.exports = mongoose.model('Encomenda', EncomendaSchema)
+module.exports = mongoose.model('Encomenda', EncomendaModel)
  
