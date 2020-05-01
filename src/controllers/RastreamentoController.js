@@ -60,6 +60,7 @@ module.exports = {
         
     },
 
+    
     async obterEncomenda(req, res) {
         var query = { 'codigoEncomenda': req.params.codigoEncomenda };
         

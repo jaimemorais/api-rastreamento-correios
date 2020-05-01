@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const routes = require('./routes')
 const cors = require('cors');
 
+const apiRastreamentoAuthMiddleware = require('./auth/apiRastreamentoAuthMiddleware')
+
 require('dotenv').config()
 
 const app = express();
@@ -19,6 +21,8 @@ app.use(cors());
 
 // express json body
 app.use(express.json())
+
+app.use(apiRastreamentoAuthMiddleware)
 
 app.use(routes);
 
