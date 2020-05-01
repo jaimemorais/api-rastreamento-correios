@@ -60,6 +60,17 @@ module.exports = {
         
     },
 
+    async obterEncomenda(req, res) {
+        var query = { 'codigoEncomenda': req.params.codigoEncomenda };
+        
+        EncomendaModel.findOne(query, function (err, encomenda) {
+            if (err) 
+                return res.send(500, {error: err});
+
+            return res.json(encomenda);
+        }); 
+    },
+
     
     async listarEncomendas(req, res) {
         EncomendaModel.find().lean().exec(function (err, encomendas) {

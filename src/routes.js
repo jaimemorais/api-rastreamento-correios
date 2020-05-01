@@ -4,6 +4,7 @@ const RastreamentoController = require('./controllers/RastreamentoController')
 
 const routes = Router();
 
+routes.get('/encomenda/:codigoEncomenda', RastreamentoController.obterEncomenda);
 routes.post('/criarEncomenda', RastreamentoController.criarEncomenda);
 routes.put('/atualizarEncomenda', RastreamentoController.atualizarEncomenda);
 routes.get('/listarEncomendas', RastreamentoController.listarEncomendas);
