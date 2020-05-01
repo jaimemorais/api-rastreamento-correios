@@ -1,6 +1,6 @@
 const { Router } = require('express');
 
-const RastreamentoController = require('./controllers/RastreamentoController')
+const RastreamentoController = require('./controllers/rastreamento-controller')
 
 const routes = Router();
 

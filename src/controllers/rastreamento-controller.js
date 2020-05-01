@@ -1,6 +1,6 @@
 const { rastro } = require('rastrojs');
-const EncomendaModel = require('../models/EncomendaModel');
-
+const EncomendaModel = require('../models/encomenda-model');
+const enviarEmail = require('../mail/mail-sender');
 
 module.exports = {
 
@@ -108,7 +108,10 @@ module.exports = {
                             console.log(`${encomenda.codigoEncomenda} atualizado.`);
                         }
 
-                        // TODO send sms for the changed status
+                        enviarEmail(
+                            encomenda.emailRemetente, 
+                            `Atualizacao status encomenda ${encomenda.codigoEncomenda}`,
+                            `A encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario} mudou o status para ${encomenda.ultimoStatus}`);
                     }    
                     else {
                         console.log(`${encomenda.codigoEncomenda} sem atualizacoes.`);

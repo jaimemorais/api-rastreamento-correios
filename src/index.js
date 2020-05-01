@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const routes = require('./routes')
 const cors = require('cors');
 
-const apiRastreamentoAuthMiddleware = require('./auth/apiRastreamentoAuthMiddleware')
+const apiRastreamentoAuthMiddleware = require('./auth/apirastreamento-auth-middleware')
 
 require('dotenv').config()
 
