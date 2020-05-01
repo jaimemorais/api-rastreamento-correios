@@ -6,9 +6,7 @@ const routes = Router();
 
 routes.post('/criarEncomenda', RastreamentoController.criarEncomenda);
 routes.put('/atualizarEncomenda', RastreamentoController.atualizarEncomenda);
-
 routes.get('/listarEncomendas', RastreamentoController.listarEncomendas);
-
-routes.get('/atualizarStatus', RastreamentoController.atualizarStatus);
+routes.get('/atualizarStatusTodasEncomendas', RastreamentoController.atualizarStatusTodasEncomendas);
 
 module.exports = routes

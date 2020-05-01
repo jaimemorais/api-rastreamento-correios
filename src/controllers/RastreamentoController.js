@@ -23,7 +23,7 @@ module.exports = {
                 return res.send(`Nao encontrada encomenda nos correios com o codigo ${code} informado. Retorno erro correios : ${error}`);
             }
 
-            encomenda = await incluirEncomenda(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio);
+            encomenda = await salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio);
         
             return res.json(encomenda);
             
@@ -47,23 +47,13 @@ module.exports = {
 
             const dadosCorreioAtualizados = await rastro.track(codigoEncomenda);
 
-            encomendaAtualizar.nomeDestinatario = nomeDestinatario;
-            encomendaAtualizar.emailDestinatario = emailDestinatario;            
-            encomendaAtualizar.emailRemetente = emailRemetente;
-            encomendaAtualizar.tipoEncomenda = dadosCorreioAtualizados[0].type;
-            encomendaAtualizar.dataEnvio = dadosCorreioAtualizados[0].postedAt;
-            encomendaAtualizar.dataHoraUltimoStatus = dadosCorreioAtualizados[0].updatedAt;
-            encomendaAtualizar.local = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].locale;
-            encomendaAtualizar.observacao = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].observation;
-            encomendaAtualizar.ultimoStatus = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].status;
+            var erroUpdate = atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados, codigoEncomenda);
 
-            var query = {'codigoEncomenda': codigoEncomenda};
-
-            EncomendaModel.update(query, encomendaAtualizar, function(err, doc) {
-                if (err) return res.send(500, {error: err});
+            if (erroUpdate) {
+                return res.send(500, { error: err });
+            } else {
                 return res.send('Dados atualizados com sucesso.');
-            });
-
+            }
         } catch (err) {
             res.status(500);
             return res.send('Erro geral : ' + err );
@@ -74,30 +64,51 @@ module.exports = {
     
     async listarEncomendas(req, res) {
         EncomendaModel.find().lean().exec(function (err, encomendas) {
-            if (err) return res.send(500, {error: err});
+            if (err) 
+                return res.send(500, {error: err});
+
             return res.json(encomendas);
         }); 
     },
 
 
-    async atualizarStatus(req, res) {
-        
-        // TODO percorrer todos itens do usuario e atualizar os status
-        // disparado por cron
-        // send sms for the changed statuses
+    atualizarStatusTodasEncomendas(req, res) {
+        EncomendaModel.find().lean().exec(function (err, encomendas) {
+            if (err) 
+                return res.send(500, {error: err});
+            
+            encomendas.forEach(encomenda => {
+                console.log('consultando ' + encomenda.codigoEncomenda);
 
-        var codigo = req.query.codigoRastreamento;
-        console.log(`chamando rastro para codigo ${codigo}...`);
-        
-        const dadosRastreamento = await rastro.track(codigo);
-        console.log(dadosRastreamento);
+                try {
                 
-        return res.json(dadosRastreamento);
+                    rastro.track(encomenda.codigoEncomenda)
+                    .then(dadosCorreio => {
+                    
+                        if (Date.parse(encomenda.dataHoraUltimoStatus) !== Date.parse(dadosCorreio[0].updatedAt)) {
+                            console.log('atualizando status para ' + encomenda.codigoEncomenda);
+                            atualizarEncomendaMongo(encomenda, encomenda.nomeDestinatario, encomenda.emailDestinatario, encomenda.emailRemetente, dadosCorreio, encomenda.codigoEncomenda);
+    
+                            // TODO send sms for the changed status
+                        }    
+                    });
+
+                    res.send('Processo disparado');
+
+                } catch (err) {
+                    res.status(500);
+                    return res.send('Erro geral : ' + err );
+                }  
+            });
+
+            
+        }); 
     }
     
 };
 
-async function incluirEncomenda(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio) {    
+
+async function salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio) {    
     const tipoEncomenda = dadosCorreio[0].type;
     const dataEnvio = dadosCorreio[0].postedAt;
     const dataHoraUltimoStatus = dadosCorreio[0].updatedAt;
@@ -118,3 +129,25 @@ async function incluirEncomenda(codigoEncomenda, nomeDestinatario, emailDestinat
         observacao
     });
 }
+    
+function atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados, codigoEncomenda) {
+    encomendaAtualizar.nomeDestinatario = nomeDestinatario;
+    encomendaAtualizar.emailDestinatario = emailDestinatario;
+    encomendaAtualizar.emailRemetente = emailRemetente;
+    encomendaAtualizar.tipoEncomenda = dadosCorreioAtualizados[0].type;
+    encomendaAtualizar.dataEnvio = dadosCorreioAtualizados[0].postedAt;
+    encomendaAtualizar.dataHoraUltimoStatus = dadosCorreioAtualizados[0].updatedAt;
+    encomendaAtualizar.local = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].locale;
+    encomendaAtualizar.observacao = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].observation;
+    encomendaAtualizar.ultimoStatus = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].status;
+    var query = { 'codigoEncomenda': codigoEncomenda };
+    var erroUpdate;
+    EncomendaModel.updateOne(query, encomendaAtualizar, function (err, doc) {
+        if (err)
+            erroUpdate = err;
+    });
+
+    return erroUpdate;
+}
+
+
