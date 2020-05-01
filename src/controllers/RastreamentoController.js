@@ -75,7 +75,7 @@ module.exports = {
     async listarEncomendas(req, res) {
         EncomendaModel.find().lean().exec(function (err, encomendas) {
             if (err) return res.send(500, {error: err});
-            return res.send(JSON.stringify(encomendas));
+            return res.json(encomendas);
         }); 
     },
 
