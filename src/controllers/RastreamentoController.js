@@ -47,13 +47,12 @@ module.exports = {
 
             const dadosCorreioAtualizados = await rastro.track(codigoEncomenda);
 
-            var erroUpdate = atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados, codigoEncomenda);
+            var infoUpdate = await atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados);
 
-            if (erroUpdate) {
-                return res.send(500, { error: err });
-            } else {
-                return res.send('Dados atualizados com sucesso.');
-            }
+            return (!infoUpdate) ? 
+                res.send(500, 'Erro ao atualizar. infoUpdate null') : 
+                (infoUpdate.nModified === 0 ? res.send('Documento nao atualizado pois nao houveram modificacoes.') : res.send('Documento atualizado no banco de dados.'));
+
         } catch (err) {
             res.status(500);
             return res.send('Erro geral : ' + err );
@@ -72,28 +71,37 @@ module.exports = {
     },
 
 
-    atualizarStatusTodasEncomendas(req, res) {
+    async atualizarStatusTodasEncomendas(req, res) {
         EncomendaModel.find().lean().exec(function (err, encomendas) {
-            if (err) 
-                return res.send(500, {error: err});
             
-            encomendas.forEach(encomenda => {
-                console.log('consultando ' + encomenda.codigoEncomenda);
+            if (err) {
+                return res.send(500, {error: err});
+            }                
+            
+            encomendas.forEach(async encomenda => {
 
                 try {
-                
-                    rastro.track(encomenda.codigoEncomenda)
-                    .then(dadosCorreio => {
-                    
-                        if (Date.parse(encomenda.dataHoraUltimoStatus) !== Date.parse(dadosCorreio[0].updatedAt)) {
-                            console.log('atualizando status para ' + encomenda.codigoEncomenda);
-                            atualizarEncomendaMongo(encomenda, encomenda.nomeDestinatario, encomenda.emailDestinatario, encomenda.emailRemetente, dadosCorreio, encomenda.codigoEncomenda);
-    
-                            // TODO send sms for the changed status
-                        }    
-                    });
+                    console.log(`Verificando ${encomenda.codigoEncomenda} ...`);
 
-                    res.send('Processo disparado');
+                    var dadosCorreio = await rastro.track(encomenda.codigoEncomenda)
+                    
+                    if (Date.parse(encomenda.dataHoraUltimoStatus) !== Date.parse(dadosCorreio[0].updatedAt)) {
+                        console.log(`${encomenda.codigoEncomenda} possui atualizacao, salvando banco de dados...`);
+                        
+                        var infoUpdate = await atualizarEncomendaMongo(encomenda, encomenda.nomeDestinatario, encomenda.emailDestinatario, encomenda.emailRemetente, dadosCorreio);
+
+                        if (!infoUpdate) {
+                            res.send(500, `Erro ao atualizar ${encomenda.codigoEncomenda}. infoUpdate : ${infoUpdate}`);
+                        } else {
+                            console.log(`${encomenda.codigoEncomenda} atualizado.`);
+                        }
+
+                        // TODO send sms for the changed status
+                    }    
+                    else {
+                        console.log(`${encomenda.codigoEncomenda} sem atualizacoes.`);
+                    }
+                    
 
                 } catch (err) {
                     res.status(500);
@@ -101,7 +109,7 @@ module.exports = {
                 }  
             });
 
-            
+            return res.send('Atualizacao finalizada.');
         }); 
     }
     
@@ -130,7 +138,7 @@ async function salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDest
     });
 }
     
-function atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados, codigoEncomenda) {
+async function atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados) {
     encomendaAtualizar.nomeDestinatario = nomeDestinatario;
     encomendaAtualizar.emailDestinatario = emailDestinatario;
     encomendaAtualizar.emailRemetente = emailRemetente;
@@ -140,14 +148,9 @@ function atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDest
     encomendaAtualizar.local = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].locale;
     encomendaAtualizar.observacao = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].observation;
     encomendaAtualizar.ultimoStatus = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].status;
-    var query = { 'codigoEncomenda': codigoEncomenda };
-    var erroUpdate;
-    EncomendaModel.updateOne(query, encomendaAtualizar, function (err, doc) {
-        if (err)
-            erroUpdate = err;
-    });
-
-    return erroUpdate;
+    var query = { 'codigoEncomenda': encomendaAtualizar.codigoEncomenda };
+    
+    return await EncomendaModel.updateOne(query, encomendaAtualizar);    
 }
 
 
