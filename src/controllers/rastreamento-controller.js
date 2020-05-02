@@ -1,6 +1,11 @@
 const { rastro } = require('rastrojs');
+
 const EncomendaModel = require('../models/encomenda-model');
+const { atualizarEncomendaMongo } = require("../models/atualizar-encomenda-mongo");
+const { salvarEncomendaMongo } = require("../models/salvar-encomenda-mongo");
+
 const enviarEmail = require('../mail/mail-sender');
+
 
 module.exports = {
 
@@ -108,10 +113,12 @@ module.exports = {
                             console.log(`${encomenda.codigoEncomenda} atualizado.`);
                         }
 
+                        // Envia email para o proprio remetente para saber que o status mudou
                         enviarEmail(
+                            encomenda.emailRemetente,
                             encomenda.emailRemetente, 
-                            `Atualizacao status encomenda ${encomenda.codigoEncomenda}`,
-                            `A encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario} mudou o status para ${encomenda.ultimoStatus}`);
+                            `Atualizacao status encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario}`,
+                            `A encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario} teve o status alterado para : ${encomenda.ultimoStatus} - Local : ${encomenda.local}`);
                     }    
                     else {
                         console.log(`${encomenda.codigoEncomenda} sem atualizacoes.`);
@@ -130,42 +137,5 @@ module.exports = {
     
 };
 
-
-async function salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio) {    
-    const tipoEncomenda = dadosCorreio[0].type;
-    const dataEnvio = dadosCorreio[0].postedAt;
-    const dataHoraUltimoStatus = dadosCorreio[0].updatedAt;
-    const local = dadosCorreio[0].tracks[dadosCorreio[0].tracks.length - 1].locale;
-    const observacao = dadosCorreio[0].tracks[dadosCorreio[0].tracks.length - 1].observation;
-    const ultimoStatus = dadosCorreio[0].tracks[dadosCorreio[0].tracks.length - 1].status;
-
-    return await EncomendaModel.create({
-        codigoEncomenda,
-        nomeDestinatario,
-        emailDestinatario,
-        dataEnvio,
-        emailRemetente,
-        tipoEncomenda,
-        ultimoStatus,
-        dataHoraUltimoStatus,
-        local,
-        observacao
-    });
-}
-    
-async function atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados) {
-    encomendaAtualizar.nomeDestinatario = nomeDestinatario;
-    encomendaAtualizar.emailDestinatario = emailDestinatario;
-    encomendaAtualizar.emailRemetente = emailRemetente;
-    encomendaAtualizar.tipoEncomenda = dadosCorreioAtualizados[0].type;
-    encomendaAtualizar.dataEnvio = dadosCorreioAtualizados[0].postedAt;
-    encomendaAtualizar.dataHoraUltimoStatus = dadosCorreioAtualizados[0].updatedAt;
-    encomendaAtualizar.local = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].locale;
-    encomendaAtualizar.observacao = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].observation;
-    encomendaAtualizar.ultimoStatus = dadosCorreioAtualizados[0].tracks[dadosCorreioAtualizados[0].tracks.length - 1].status;
-    var query = { 'codigoEncomenda': encomendaAtualizar.codigoEncomenda };
-    
-    return await EncomendaModel.updateOne(query, encomendaAtualizar);    
-}
 
 

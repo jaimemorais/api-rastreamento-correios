@@ -1,12 +1,10 @@
 var nodemailer = require('nodemailer');
 
-module.exports = function enviarEmail(destinatario, assunto, mensagem) {
+module.exports = function enviarEmail(remetente, destinatario, assunto, mensagem) {
         
     var transportOptions = {
         host: process.env.MAIL_SMTP_HOST,
         port: process.env.MAIL_SMTP_PORT,
-        //secure: true,
-        //ignoreTLS: true,
         auth: {
             user: process.env.MAIL_SERVICE_USER_MAIL,
             pass: process.env.MAIL_SERVICE_USER_PWD        
@@ -16,7 +14,7 @@ module.exports = function enviarEmail(destinatario, assunto, mensagem) {
     var transporter = nodemailer.createTransport(transportOptions);
 
     var mailOptions = {
-        from: process.env.MAIL_SERVICE_USER_MAIL,
+        from: remetente,
         to: destinatario,
         subject: assunto,
         text: mensagem
