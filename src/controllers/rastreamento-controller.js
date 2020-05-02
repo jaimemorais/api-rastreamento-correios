@@ -5,8 +5,7 @@ const mailSender = require('../mail/mail-sender');
 
 module.exports = {
 
-    async criarEncomenda(req, res) {
-        
+    async criarEncomenda(req, res) {        
         try {
             const { codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente } = req.body;
             let encomenda = await encomendaDao.obterEncomendaPorCodigo(codigoEncomenda);
@@ -29,15 +28,12 @@ module.exports = {
             return res.json(encomenda);
             
         } catch (err) {
-            res.status(500);
-            return res.send('Erro geral : ' + err );
-        }
-        
+            return res.status(500).send(err.message);
+        }        
     },
 
 
-    async atualizarEncomenda(req, res) {
-        
+    async atualizarEncomenda(req, res) {        
         try {
             const { codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente } = req.body;
             let encomendaAtualizar = await encomendaDao.obterEncomendaPorCodigo(codigoEncomenda);
@@ -55,10 +51,8 @@ module.exports = {
                 (infoUpdate.nModified === 0 ? res.send('Documento nao atualizado pois nao houveram modificacoes.') : res.send('Documento atualizado no banco de dados.'));
 
         } catch (err) {
-            res.status(500);
-            return res.send('Erro geral : ' + err );
-        }
-        
+            return res.status(500).send(err.message);
+        }        
     },
 
     
@@ -67,20 +61,17 @@ module.exports = {
             let encomenda = await encomendaDao.obterEncomendaPorCodigo(req.params.codigoEncomenda);
             return res.json(encomenda);
         } catch (err) {
-            res.status(500);
-            return res.send('Erro geral : ' + err );
+            return res.status(500).send(err.message);
         }        
     },
 
     
     async listarEncomendas(req, res) {
-
         try {
-            let encomendas = await encomendaDao.obterTodas();
+            let encomendas = await encomendaDao3.obterTodas();
             return res.json(encomendas);
-        } catch (err) {
-            res.status(500);
-            return res.send('Erro geral : ' + err );
+        } catch (err) {            
+            return res.status(500).send(err.message);
         }   
     },
 
@@ -122,8 +113,7 @@ module.exports = {
             return res.send('Atualizacao finalizada.');
         
         } catch (err) {
-            res.status(500);
-            return res.send('Erro geral : ' + err );
+            return res.status(500).send(err.message);
         }  
 
     }
