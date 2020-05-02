@@ -1,10 +1,6 @@
 const { rastro } = require('rastrojs');
-
-const EncomendaModel = require('../models/encomenda-model');
-const { atualizarEncomendaMongo } = require("../models/atualizar-encomenda-mongo");
-const { salvarEncomendaMongo } = require("../models/salvar-encomenda-mongo");
-
-const enviarEmail = require('../mail/mail-sender');
+const encomendaDao = require("../models/encomenda-dao");
+const mailSender = require('../mail/mail-sender');
 
 
 module.exports = {
@@ -13,7 +9,7 @@ module.exports = {
         
         try {
             const { codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente } = req.body;
-            let encomenda = await EncomendaModel.findOne({ codigoEncomenda });
+            let encomenda = await encomendaDao.obterEncomendaPorCodigo(codigoEncomenda);
             if (encomenda) {
                 res.status(400);
                 return res.send('Ja existe uma encomenda com o codigo informado');
@@ -28,7 +24,7 @@ module.exports = {
                 return res.send(`Nao encontrada encomenda nos correios com o codigo ${code} informado. Retorno erro correios : ${error}`);
             }
 
-            encomenda = await salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio);
+            encomenda = await encomendaDao.salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio);
         
             return res.json(encomenda);
             
@@ -44,7 +40,7 @@ module.exports = {
         
         try {
             const { codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente } = req.body;
-            let encomendaAtualizar = await EncomendaModel.findOne({ codigoEncomenda });3
+            let encomendaAtualizar = await encomendaDao.obterEncomendaPorCodigo(codigoEncomenda);
             if (!encomendaAtualizar) {
                 res.status(404);
                 return res.send(`Nao encontrada encomenda cadastrada com o codigo ${codigoEncomenda} informado.`);
@@ -52,7 +48,7 @@ module.exports = {
 
             const dadosCorreioAtualizados = await rastro.track(codigoEncomenda);
 
-            var infoUpdate = await atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados);
+            var infoUpdate = await encomendaDao.atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados);
 
             return (!infoUpdate) ? 
                 res.send(500, 'Erro ao atualizar. infoUpdate null') : 
@@ -67,75 +63,74 @@ module.exports = {
 
     
     async obterEncomenda(req, res) {
-        var query = { 'codigoEncomenda': req.params.codigoEncomenda };
-        
-        EncomendaModel.findOne(query, function (err, encomenda) {
-            if (err) 
-                return res.send(500, {error: err});
-
+        try {
+            let encomenda = await encomendaDao.obterEncomendaPorCodigo(req.params.codigoEncomenda);
             return res.json(encomenda);
-        }); 
+        } catch (err) {
+            res.status(500);
+            return res.send('Erro geral : ' + err );
+        }        
     },
 
     
     async listarEncomendas(req, res) {
-        EncomendaModel.find().lean().exec(function (err, encomendas) {
-            if (err) 
-                return res.send(500, {error: err});
 
+        try {
+            let encomendas = await encomendaDao.obterTodas();
             return res.json(encomendas);
-        }); 
+        } catch (err) {
+            res.status(500);
+            return res.send('Erro geral : ' + err );
+        }   
     },
 
 
     async atualizarStatusTodasEncomendas(req, res) {
-        EncomendaModel.find().lean().exec(function (err, encomendas) {
-            
-            if (err) {
-                return res.send(500, {error: err});
-            }                
-            
+        try {
+            let encomendas = await encomendaDao.obterTodas();
+
             encomendas.forEach(async encomenda => {
+            
+                console.log(`Verificando ${encomenda.codigoEncomenda} ...`);
 
-                try {
-                    console.log(`Verificando ${encomenda.codigoEncomenda} ...`);
-
-                    var dadosCorreio = await rastro.track(encomenda.codigoEncomenda)
+                var dadosCorreio = await rastro.track(encomenda.codigoEncomenda)
+                
+                if (Date.parse(encomenda.dataHoraUltimoStatus) !== Date.parse(dadosCorreio[0].updatedAt)) {
+                    console.log(`${encomenda.codigoEncomenda} possui atualizacao, salvando banco de dados...`);
                     
-                    if (Date.parse(encomenda.dataHoraUltimoStatus) !== Date.parse(dadosCorreio[0].updatedAt)) {
-                        console.log(`${encomenda.codigoEncomenda} possui atualizacao, salvando banco de dados...`);
-                        
-                        var infoUpdate = await atualizarEncomendaMongo(encomenda, encomenda.nomeDestinatario, encomenda.emailDestinatario, encomenda.emailRemetente, dadosCorreio);
+                    var infoUpdate = await encomendaDao.atualizarEncomendaMongo(encomenda, encomenda.nomeDestinatario, encomenda.emailDestinatario, encomenda.emailRemetente, dadosCorreio);
 
-                        if (!infoUpdate) {
-                            res.send(500, `Erro ao atualizar ${encomenda.codigoEncomenda}. infoUpdate : ${infoUpdate}`);
-                        } else {
-                            console.log(`${encomenda.codigoEncomenda} atualizado.`);
-                        }
-
-                        // Envia email para o proprio remetente para saber que o status mudou
-                        enviarEmail(
-                            encomenda.emailRemetente,
-                            encomenda.emailRemetente, 
-                            `Atualizacao status encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario}`,
-                            `A encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario} teve o status alterado para : ${encomenda.ultimoStatus} - Local : ${encomenda.local}`);
-                    }    
-                    else {
-                        console.log(`${encomenda.codigoEncomenda} sem atualizacoes.`);
+                    if (!infoUpdate) {
+                        res.send(500, `Erro ao atualizar ${encomenda.codigoEncomenda}. infoUpdate : ${infoUpdate}`);
+                    } else {
+                        console.log(`${encomenda.codigoEncomenda} atualizado.`);
                     }
-                    
 
-                } catch (err) {
-                    res.status(500);
-                    return res.send('Erro geral : ' + err );
-                }  
+                    // Envia email para o proprio remetente para saber que o status mudou
+                    mailSender.enviarEmail(
+                        encomenda.emailRemetente,
+                        encomenda.emailRemetente, 
+                        `Atualizacao status encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario}`,
+                        `A encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario} teve o status alterado para : ${encomenda.ultimoStatus} - Local : ${encomenda.local}`);
+                }    
+                else {
+                    console.log(`${encomenda.codigoEncomenda} sem atualizacoes.`);
+                }                
+
             });
 
             return res.send('Atualizacao finalizada.');
-        }); 
+        
+        } catch (err) {
+            res.status(500);
+            return res.send('Erro geral : ' + err );
+        }  
+
     }
     
 };
+
+
 
 
 
