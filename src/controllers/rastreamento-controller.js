@@ -1,6 +1,6 @@
 const { rastro } = require('rastrojs');
 const encomendaDao = require("../models/encomenda-dao");
-const mailSender = require('../mail/mail-sender');
+const mailService = require('../mail/mail-service');
 
 
 module.exports = {
@@ -98,7 +98,7 @@ module.exports = {
                     }
 
                     // Envia email para o proprio remetente para saber que o status mudou
-                    mailSender.enviarEmail(
+                    mailService.enviarEmail(
                         encomenda.emailRemetente,
                         encomenda.emailRemetente, 
                         `Atualizacao status encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario}`,
