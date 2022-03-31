@@ -5,7 +5,7 @@ const mailService = require('../mail/mail-service');
 
 module.exports = {
 
-    async criarEncomenda(req, res) {        
+    async criarEncomenda(req, res) {
         try {
             const { codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente } = req.body;
             let encomenda = await encomendaDao.obterEncomendaPorCodigo(codigoEncomenda);
@@ -15,25 +15,29 @@ module.exports = {
             }
 
             // Busca via rastrojs
+            if (!rastro) {
+                return res.status(500).send('Nao conseguiu acessar api rastro correios.');
+            }
+
             const dadosCorreio = await rastro.track(codigoEncomenda);
             const { code, isInvalid, error } = dadosCorreio[0];
-    
-            if (!dadosCorreio || isInvalid) {                
+
+            if (!dadosCorreio || isInvalid) {
                 res.status(404);
                 return res.send(`Nao encontrada encomenda nos correios com o codigo ${code} informado. Retorno erro correios : ${error}`);
             }
 
             encomenda = await encomendaDao.salvarEncomendaMongo(codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreio);
-        
+
             return res.json(encomenda);
-            
+
         } catch (err) {
             return res.status(500).send(err.message);
-        }        
+        }
     },
 
 
-    async atualizarEncomenda(req, res) {        
+    async atualizarEncomenda(req, res) {
         try {
             const { codigoEncomenda, nomeDestinatario, emailDestinatario, emailRemetente } = req.body;
             let encomendaAtualizar = await encomendaDao.obterEncomendaPorCodigo(codigoEncomenda);
@@ -46,33 +50,33 @@ module.exports = {
 
             var infoUpdate = await encomendaDao.atualizarEncomendaMongo(encomendaAtualizar, nomeDestinatario, emailDestinatario, emailRemetente, dadosCorreioAtualizados);
 
-            return (!infoUpdate) ? 
-                res.send(500, 'Erro ao atualizar. infoUpdate null') : 
+            return (!infoUpdate) ?
+                res.send(500, 'Erro ao atualizar. infoUpdate null') :
                 (infoUpdate.nModified === 0 ? res.send('Documento nao atualizado pois nao houveram modificacoes.') : res.send('Documento atualizado no banco de dados.'));
 
         } catch (err) {
             return res.status(500).send(err.message);
-        }        
+        }
     },
 
-    
+
     async obterEncomenda(req, res) {
         try {
             let encomenda = await encomendaDao.obterEncomendaPorCodigo(req.params.codigoEncomenda);
             return res.json(encomenda);
         } catch (err) {
             return res.status(500).send(err.message);
-        }        
+        }
     },
 
-    
+
     async listarEncomendas(req, res) {
         try {
             let encomendas = await encomendaDao3.obterTodas();
             return res.json(encomendas);
-        } catch (err) {            
+        } catch (err) {
             return res.status(500).send(err.message);
-        }   
+        }
     },
 
 
@@ -81,14 +85,14 @@ module.exports = {
             let encomendas = await encomendaDao.obterTodas();
 
             encomendas.forEach(async encomenda => {
-            
+
                 console.log(`Verificando ${encomenda.codigoEncomenda} ...`);
 
                 var dadosCorreio = await rastro.track(encomenda.codigoEncomenda)
-                
+
                 if (Date.parse(encomenda.dataHoraUltimoStatus) !== Date.parse(dadosCorreio[0].updatedAt)) {
                     console.log(`${encomenda.codigoEncomenda} possui atualizacao, salvando banco de dados...`);
-                    
+
                     var infoUpdate = await encomendaDao.atualizarEncomendaMongo(encomenda, encomenda.nomeDestinatario, encomenda.emailDestinatario, encomenda.emailRemetente, dadosCorreio);
 
                     if (!infoUpdate) {
@@ -100,24 +104,24 @@ module.exports = {
                     // Envia email para o proprio remetente para saber que o status mudou
                     mailService.enviarEmail(
                         encomenda.emailRemetente,
-                        encomenda.emailRemetente, 
+                        encomenda.emailRemetente,
                         `Atualizacao status encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario}`,
                         `A encomenda ${encomenda.codigoEncomenda} para ${encomenda.nomeDestinatario} teve o status alterado para : ${encomenda.ultimoStatus} - Local : ${encomenda.local}`);
-                }    
+                }
                 else {
                     console.log(`${encomenda.codigoEncomenda} sem atualizacoes.`);
-                }                
+                }
 
             });
 
             return res.send('Atualizacao finalizada.');
-        
+
         } catch (err) {
             return res.status(500).send(err.message);
-        }  
+        }
 
     }
-    
+
 };
 
 
