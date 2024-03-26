@@ -755,9 +755,9 @@ negotiator@0.6.3:
   version "0.6.3"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.3.tgz#58e323a72fedc0d6f9cd4d31fe49f51479590ccd"
 
-nodemailer@^6.6.1:
-  version "6.6.1"
-  resolved "https://registry.npmjs.org/nodemailer/-/nodemailer-6.6.1.tgz"
+nodemailer@^6.9.9:
+  version "6.9.9"
+  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-6.9.9.tgz#4549bfbf710cc6addec5064dd0f19874d24248d9"
 
 nodemon@^2.0.20:
   version "2.0.20"
