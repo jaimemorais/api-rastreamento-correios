@@ -7,7 +7,7 @@
     "cors": "^2.8.5",
     "express": "^4.22.0",
     "mongoose": "^8.9.5",
-    "nodemailer": "^8.0.4",
+    "nodemailer": "^8.0.5",
     "rastrojs": "^1.1.0"
   },
   "devDependencies": {
